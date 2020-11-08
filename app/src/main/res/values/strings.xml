@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">BLE Smartbulb</string>
+
+
+    <string name="ble_not_supported">BLE Not Supported</string>
+    <string name="ble_uuid">dfb2f1bc-ccb1-2891-7b0f-db6331b3247d</string>
+    <string name="on">On</string>
+    <string name="of">Of</string>
+    <string name="beep">Beep</string>
+
+
+</resources>
