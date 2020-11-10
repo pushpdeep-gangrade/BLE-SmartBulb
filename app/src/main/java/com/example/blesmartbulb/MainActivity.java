@@ -45,10 +45,12 @@ import java.util.UUID;
 public class MainActivity extends AppCompatActivity {
 
     public static String uid = "dfb2f1bc-ccb1-2891-7b0f-db6331b3247d";
-    public static String bulb_uid ="FB959362-F26E-43A9-927C-7E17D8FB2D8D";
+    public static String bulb_uid = "FB959362-F26E-43A9-927C-7E17D8FB2D8D";
     public static String temp_uid = "0CED9345-B31F-457D-A6A2-B3DB9B03E39A";
     public static String beep_uid = "EC958823-F26E-43A9-927C-7E17D8F32A90";
 
+    String WRITE_ONE = "1";
+    String WRITE_ZERO = "0";
 
     private BluetoothAdapter mBluetoothAdapter;
     private Handler mHandler;
@@ -77,20 +79,30 @@ public class MainActivity extends AppCompatActivity {
         tv_on.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                writeData(mBluetoothGatt.getService(UUID.fromString(uid)).getCharacteristic(UUID.fromString(bulb_uid)));
+                if(mBluetoothGatt !=null)
+                writeData(mBluetoothGatt.getService(UUID.fromString(uid)).getCharacteristic(UUID.fromString(bulb_uid)), WRITE_ONE);
+                else
+                    Toast.makeText(MainActivity.this, "Bluetooth not connected", Toast.LENGTH_SHORT).show();
             }
         });
 
         tv_off.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                readCharacteristic(mBluetoothGatt.getService(UUID.fromString(uid)).getCharacteristic(UUID.fromString(bulb_uid)));
+                if(mBluetoothGatt !=null)
+                writeData(mBluetoothGatt.getService(UUID.fromString(uid)).getCharacteristic(UUID.fromString(bulb_uid)), WRITE_ZERO);
+                else
+                    Toast.makeText(MainActivity.this, "Bluetooth not connected", Toast.LENGTH_SHORT).show();
             }
         });
         beep.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                writeData(mBluetoothGatt.getService(UUID.fromString(uid)).getCharacteristic(UUID.fromString(beep_uid)));
+                if(mBluetoothGatt !=null)
+                writeData(mBluetoothGatt.getService(UUID.fromString(uid)).getCharacteristic(UUID.fromString(beep_uid)), WRITE_ONE);
+                else
+                Toast.makeText(MainActivity.this, "Bluetooth not connected", Toast.LENGTH_SHORT).show();
+
             }
         });
 
@@ -121,8 +133,9 @@ public class MainActivity extends AppCompatActivity {
         if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-        } else
-            scanLeDevice();
+        }
+//        else
+//            scanLeDevice();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)
@@ -136,7 +149,17 @@ public class MainActivity extends AppCompatActivity {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
-        //scanLeDevice(true);
+        if(mBluetoothGatt != null){
+            charactersticNotify(mBluetoothGatt);
+        }
+       else
+        scanLeDevice();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+       close();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)
@@ -201,9 +224,6 @@ public class MainActivity extends AppCompatActivity {
             super.onScanResult(callbackType, result);
             bluetoothDevice = result.getDevice();
             connect(bluetoothDevice);
-//            Intent gattServiceIntent = new Intent(MainActivity.this, BluetoothLeService.class);
-//            bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
-            // connect(result.getDevice());
             Log.d("demo", result.getDevice().toString());
         }
     };
@@ -219,7 +239,7 @@ public class MainActivity extends AppCompatActivity {
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     public void connect(BluetoothDevice device) {
-        scanLeDevice();
+            mBluetoothAdapter.getBluetoothLeScanner().stopScan(leScanCallback);
 
         final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
             @Override
@@ -231,7 +251,8 @@ public class MainActivity extends AppCompatActivity {
                         gatt.discoverServices();
                         break;
                     case BluetoothProfile.STATE_DISCONNECTED:
-                        Log.d("demo", "STATE_DISCONNECTED");
+                        scanLeDevice();
+                        clearUi();
                         break;
                     default:
                         Log.d("demo", "STATE_OTHER");
@@ -243,15 +264,9 @@ public class MainActivity extends AppCompatActivity {
                 List<BluetoothGattService> services = gatt.getServices();
                 Log.i("onServicesDiscovered", services.toString());
 
-                BluetoothGattCharacteristic bulbCharacterstics = gatt.getService(UUID.fromString(uid)).getCharacteristic(UUID.fromString(bulb_uid));
                 BluetoothGattCharacteristic tempCharacterstics = gatt.getService(UUID.fromString(uid)).getCharacteristic(UUID.fromString(temp_uid));
-                BluetoothGattCharacteristic beepCharacterstics = gatt.getService(UUID.fromString(uid)).getCharacteristic(UUID.fromString(beep_uid));
 
                 Log.i("demo", tempCharacterstics.getUuid().toString());
-                Log.i("demo", bulbCharacterstics.getUuid().toString());
-                Log.i("demo", beepCharacterstics.getUuid().toString());
-
-
                 Boolean enabled = true;
                 gatt.setCharacteristicNotification(tempCharacterstics, enabled);
 
@@ -259,21 +274,25 @@ public class MainActivity extends AppCompatActivity {
 
 
             @Override
-            public void onCharacteristicRead(BluetoothGatt gatt,BluetoothGattCharacteristic characteristic, int status) {
+            public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
                 final byte[] data = characteristic.getValue();
                 if (data != null && data.length > 0) {
                     final String s = new String(data, StandardCharsets.UTF_8);
                     Log.d("demo", "On Char read" + s);
                 }
-                Log.d("demo", "On char read" +characteristic.getUuid().toString());
-                Log.d("demo", "On char read" +characteristic.toString());
+                Log.d("demo", "On char read" + characteristic.getUuid().toString());
+                Log.d("demo", "On char read" + characteristic.toString());
             }
-//
-//             @Override
-             public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-                 super.onCharacteristicWrite(gatt, characteristic, status);
 
-             }
+            @Override
+            public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+                super.onCharacteristicWrite(gatt, characteristic, status);
+
+                Log.d("demo", characteristic.getUuid().toString());
+                String s = new String(characteristic.getValue(), StandardCharsets.UTF_8);
+                Log.d("demo", s);
+
+            }
 
             @Override
             public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
@@ -286,37 +305,52 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
-        mBluetoothGatt= device.connectGatt(this, false, gattCallback);
-
-
+        mBluetoothGatt = device.connectGatt(this, false, gattCallback);
     }
 
     public void text(final String t) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                tv_temp.setText(t);
+                tv_temp.setText(t + " \u2109");
             }
         });
     }
 
-    public void readCharacteristic(BluetoothGattCharacteristic characteristic) {
-        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
-            Log.w("demo", "BluetoothAdapter not initialized");
-            return;
-        }
-        mBluetoothGatt.readCharacteristic(characteristic);
+    public void clearUi(){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(MainActivity.this, "Bluetooth Disconnected", Toast.LENGTH_SHORT).show();
+                tv_temp.setText("");
+            }
+        });
     }
 
-    public void writeData(BluetoothGattCharacteristic characteristic) {
+    public void writeData(BluetoothGattCharacteristic characteristic, String value) {
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
             Log.w("demo", "BluetoothAdapter not initialized");
             return;
         }
-        characteristic.setValue("1");
+        characteristic.setValue(value);
+        Log.d("demo", value);
         mBluetoothGatt.writeCharacteristic(characteristic);
     }
 
+    public void charactersticNotify(BluetoothGatt gatt){
+
+        gatt.setCharacteristicNotification(gatt.getService(UUID.fromString(uid)).getCharacteristic(UUID.fromString(temp_uid)), true);
+    }
+
+    public void close() {
+        if (mBluetoothGatt == null) {
+            return;
+        }
+      //  mBluetoothGatt.disconnect();
+        mBluetoothGatt.close();
+
+        mBluetoothGatt = null;
+    }
 
 
 }
