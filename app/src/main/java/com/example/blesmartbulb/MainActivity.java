@@ -46,15 +46,9 @@ import java.util.UUID;
 public class MainActivity extends AppCompatActivity {
 
     public static String uid = "df458ca5-f939-470f-be8b-2cd0435a1893";
-
-    //public static String uid = "df35062a-7d97-f28b-5df4-7685dfe61bec";
-
-
     public static String bulb_uid = "FB959362-F26E-43A9-927C-7E17D8FB2D8D";
     public static String temp_uid = "0CED9345-B31F-457D-A6A2-B3DB9B03E39A";
     public static String beep_uid = "EC958823-F26E-43A9-927C-7E17D8F32A90";
-     public static String deviceAddress = "BC:2F:3D:3E:4E:F1";
-    //public static String deviceAddress = "F0:5C:77:DE:08:D5";
 
     int WRITE_ONE = 1;
     int WRITE_ZERO = 0;
@@ -106,9 +100,13 @@ public class MainActivity extends AppCompatActivity {
         beep.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (mBluetoothGatt != null)
-                    writeData(mBluetoothGatt.getService(UUID.fromString(uid)).getCharacteristic(UUID.fromString(beep_uid)), WRITE_ONE);
-                else
+                if (mBluetoothGatt != null) {
+                    if (beep.getText().equals("Beeping")) {
+                        writeData(mBluetoothGatt.getService(UUID.fromString(uid)).getCharacteristic(UUID.fromString(beep_uid)), WRITE_ZERO);
+                    } else
+                        writeData(mBluetoothGatt.getService(UUID.fromString(uid)).getCharacteristic(UUID.fromString(beep_uid)), WRITE_ONE);
+
+                } else
                     Toast.makeText(MainActivity.this, "Bluetooth not connected", Toast.LENGTH_SHORT).show();
 
             }
@@ -142,8 +140,7 @@ public class MainActivity extends AppCompatActivity {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
-//        else
-//            scanLeDevice();
+
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)
@@ -193,7 +190,7 @@ public class MainActivity extends AppCompatActivity {
     private void scanLeDevice() {
         final List<ScanFilter> scanFilterList = new ArrayList<>();
         ScanFilter filter = new ScanFilter.Builder()
-                .setDeviceAddress(deviceAddress)
+                .setServiceUuid(new ParcelUuid(UUID.fromString(uid)))
                 .build();
         scanFilterList.add(filter);
 
@@ -290,6 +287,13 @@ public class MainActivity extends AppCompatActivity {
                 final byte[] data = characteristic.getValue();
                 if (data != null && data.length > 0) {
                     final String s = new String(data, StandardCharsets.UTF_8);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            beep.setText(s);
+                        }
+                    });
+
                     Log.d("demo", "On Char read" + s);
                 }
                 Log.d("demo", "On char read" + characteristic.getUuid().toString());
@@ -299,11 +303,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
                 super.onCharacteristicWrite(gatt, characteristic, status);
-
-                Log.d("demo", characteristic.getUuid().toString());
-                String s = new String(characteristic.getValue(), StandardCharsets.UTF_8);
-                Log.d("demo", s);
-
+                readData(characteristic);
             }
 
             @Override
@@ -344,15 +344,19 @@ public class MainActivity extends AppCompatActivity {
             Log.w("demo", "BluetoothAdapter not initialized");
             return;
         }
+        byte[] a = new byte[1];
+        a[0] = (byte) value;
 
-        characteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
-
-        Boolean check = characteristic.setValue(String.valueOf(value).getBytes(StandardCharsets.UTF_8));
-
-        Log.d("demo", "check ceck" + check);
+        characteristic.setValue(a);
 
         Log.d("demo", characteristic.getValue().toString());
         mBluetoothGatt.writeCharacteristic(characteristic);
+
+    }
+
+    public void readData(BluetoothGattCharacteristic characteristic) {
+        if (characteristic.getUuid().toString().equalsIgnoreCase(beep_uid))
+            mBluetoothGatt.readCharacteristic(characteristic);
     }
 
     public void charactersticNotify(BluetoothGatt gatt) {
