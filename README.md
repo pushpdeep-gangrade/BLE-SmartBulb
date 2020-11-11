@@ -23,12 +23,15 @@
 - Users can turn off and on the bulb.
 - Users can trigger the beeping of the bulb by pressing "Beep."
 <br>
-<img src="https://github.com/pushpdeep-gangrade/Chatroom/blob/master/screen_images/Login.png" width=150>
+<img src="https://github.com/pushpdeep-gangrade/BLE-SmartBulb/blob/master/screen_images/beeping.png" width=150>
 </br>
 - Users can turn the bulb on and off by pressing "ON" and "OFF."
 <br>
-<img src="https://github.com/pushpdeep-gangrade/Chatroom/blob/master/screen_images/Login.png" width=150>
- </br>
- 
+<img src="https://github.com/pushpdeep-gangrade/BLE-SmartBulb/blob/master/screen_images/bulb_on.png" width=150>
+</br>
+<br>
+<img src="https://github.com/pushpdeep-gangrade/BLE-SmartBulb/blob/master/screen_images/bulb_off.png" width=150>
+</br>
+
 ## Video Demo
 https://www.youtube.com/watch?v=m2kgSmo4jNc 
