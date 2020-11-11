@@ -22,7 +22,13 @@
 - When the app is run for the first time, the user is prompted to allow app permissions, such as wifi and bluetooth.
 - Users can turn off and on the bulb.
 - Users can trigger the beeping of the bulb by pressing "Beep."
+<br>
+<img src="https://github.com/pushpdeep-gangrade/Chatroom/blob/master/screen_images/Login.png" width=150>
+</br>
 - Users can turn the bulb on and off by pressing "ON" and "OFF."
+<br>
+<img src="https://github.com/pushpdeep-gangrade/Chatroom/blob/master/screen_images/Login.png" width=150>
+ </br>
  
 ## Video Demo
 https://www.youtube.com/watch?v=m2kgSmo4jNc 
