@@ -71,6 +71,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         tv_temp = findViewById(R.id.tv_temp);
         tv_on = findViewById(R.id.tv_on);
         tv_off = findViewById(R.id.tv_of);
@@ -119,7 +120,21 @@ public class MainActivity extends AppCompatActivity {
 
         final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
+    }
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (mBluetoothGatt != null) {
+            charactersticNotify(mBluetoothGatt);
+        } else
+            checkAllPermission();
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    public void checkAllPermission() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
                 ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH) != PackageManager.PERMISSION_GRANTED ||
                 ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_ADMIN) != PackageManager.PERMISSION_GRANTED) {
@@ -131,33 +146,27 @@ public class MainActivity extends AppCompatActivity {
                     Manifest.permission.BLUETOOTH,
 
                     Manifest.permission.BLUETOOTH_ADMIN}, 101);
+        } else
+            checkBluetoothOn();
+    }
 
-        } else {
-            System.out.println("Location permissions available, starting location");
-        }
-
-        if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    public void checkBluetoothOn() {
+        if (!mBluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-        }
-
+        } else
+            scanLeDevice();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
-    protected void onResume() {
-        super.onResume();
-        // Ensures Bluetooth is enabled on the device.  If Bluetooth is not currently enabled,
-        // fire an intent to display a dialog asking the user to grant permission to enable it.
-
-        if (!mBluetoothAdapter.isEnabled()) {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-        }
-        if (mBluetoothGatt != null) {
-            charactersticNotify(mBluetoothGatt);
-        } else
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_ENABLE_BT && resultCode == RESULT_OK) {
             scanLeDevice();
+        } else
+            finish();
     }
 
     @Override
@@ -165,26 +174,6 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         close();
     }
-
-    @RequiresApi(api = Build.VERSION_CODES.M)
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        // User chose not to enable Bluetooth.
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_ENABLE_BT && resultCode == RESULT_OK) {
-            scanLeDevice();
-        }
-
-    }
-
-
-    @RequiresApi(api = Build.VERSION_CODES.M)
-    @Override
-    protected void onPause() {
-        super.onPause();
-        //scanLeDevice(false);
-    }
-
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     private void scanLeDevice() {
@@ -195,28 +184,18 @@ public class MainActivity extends AppCompatActivity {
         scanFilterList.add(filter);
 
         ScanSettings scanSettings = new ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
+                .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
                 .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
                 .setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
                 .setNumOfMatches(ScanSettings.MATCH_NUM_ONE_ADVERTISEMENT)
                 .setReportDelay(0L)
                 .build();
 
-
         if (!mScanning) {
-            mHandler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    mScanning = false;
-                    mBluetoothAdapter.getBluetoothLeScanner().stopScan(leScanCallback);
-                }
-            }, SCAN_PERIOD);
-
             mScanning = true;
             mBluetoothAdapter.getBluetoothLeScanner().startScan(scanFilterList, scanSettings, leScanCallback);
         } else {
             mScanning = false;
-            mBluetoothAdapter.getBluetoothLeScanner().stopScan(leScanCallback);
         }
     }
 
@@ -232,14 +211,14 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        if (requestCode == 101) {
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                System.out.println("Location permissions granted, starting location");
-            } else
-                finish();
-        }
+        if (requestCode == 101 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            checkBluetoothOn();
+        } else
+            finish();
     }
+
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     public void connect(BluetoothDevice device) {
