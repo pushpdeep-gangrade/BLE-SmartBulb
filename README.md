@@ -23,7 +23,6 @@
 - Users can turn off and on the bulb.
 - Users can trigger the beeping of the bulb by pressing "Beep."
 <br>
-![alt text] (https://github.com/pushpdeep-gangrade/BLE-SmartBulb/master/beeping.png)
 <img src="https://github.com/pushpdeep-gangrade/BLE-SmartBulb/master/beeping.png" width=150>
 </br>
 - Users can turn the bulb on and off by pressing "ON" and "OFF."
